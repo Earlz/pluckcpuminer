@@ -1159,7 +1159,7 @@ static void *miner_thread(void *userdata)
 				max64 = 0x1fffff;
 				break;
 			case ALGO_PLUCK:
-				max64 = 0xffff / opt_pluck_n; //tuning needed?
+				max64 = 0xfff / opt_pluck_n; //tuning needed?
 			}
 		}
 		if (work.data[19] + max64 > end_nonce)
@@ -1184,6 +1184,7 @@ static void *miner_thread(void *userdata)
 		case ALGO_PLUCK:
 			rc = scanhash_pluck(thr_id, work.data, scratchbuf, work.target,
 													max_nonce, &hashes_done, opt_pluck_n);
+			break;
 		default:
 			/* should never happen */
 			goto out;
