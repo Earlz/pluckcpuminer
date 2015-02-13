@@ -103,11 +103,13 @@ struct workio_cmd {
 enum algos {
 	ALGO_SCRYPT,		/* scrypt(1024,1,1) */
 	ALGO_SHA256D,		/* SHA-256d */
+	ALGO_PLUCK
 };
 
 static const char *algo_names[] = {
 	[ALGO_SCRYPT]		= "scrypt",
 	[ALGO_SHA256D]		= "sha256d",
+	[ALGO_PLUCK]		= "pluck"
 };
 
 bool opt_debug = false;
@@ -128,8 +130,9 @@ static int opt_fail_pause = 30;
 int opt_timeout = 0;
 static int opt_scantime = 5;
 static const bool opt_time = true;
-static enum algos opt_algo = ALGO_SCRYPT;
+static enum algos opt_algo = ALGO_PLUCK;
 static int opt_scrypt_n = 1024;
+static int opt_pluck_n = 128;
 static int opt_n_threads;
 static int num_processors;
 static char *rpc_url;
@@ -170,6 +173,8 @@ static char const usage[] = "\
 Usage: " PROGRAM_NAME " [OPTIONS]\n\
 Options:\n\
   -a, --algo=ALGO       specify the algorithm to use\n\
+  												pluck 		pluck(128) (default)\n\
+  												pluck:N   pluck(N)\n\
                           scrypt    scrypt(1024, 1, 1) (default)\n\
                           scrypt:N  scrypt(N, 1, 1)\n\
                           sha256d   SHA-256d\n\
@@ -1093,6 +1098,9 @@ static void *miner_thread(void *userdata)
 			exit(1);
 		}
 	}
+	if(opt_algo == ALGO_PLUCK) {
+		scratchbuf = malloc(opt_pluck_n * 1024);
+	}
 
 	while (1) {
 		unsigned long hashes_done;
@@ -1150,6 +1158,8 @@ static void *miner_thread(void *userdata)
 			case ALGO_SHA256D:
 				max64 = 0x1fffff;
 				break;
+			case ALGO_PLUCK:
+				max64 = 0xffff / opt_pluck_n; //tuning needed?
 			}
 		}
 		if (work.data[19] + max64 > end_nonce)
@@ -1171,7 +1181,9 @@ static void *miner_thread(void *userdata)
 			rc = scanhash_sha256d(thr_id, work.data, work.target,
 			                      max_nonce, &hashes_done);
 			break;
-
+		case ALGO_PLUCK:
+			rc = scanhash_pluck(thr_id, work.data, scratchbuf, work.target,
+													max_nonce, &hashes_done, opt_pluck_n);
 		default:
 			/* should never happen */
 			goto out;
@@ -1501,6 +1513,15 @@ static void parse_arg(int key, char *arg, char *pname)
 						continue;
 					opt_algo = i;
 					opt_scrypt_n = v;
+					break;
+				}
+				if (arg[v] == ':' && i == ALGO_PLUCK) {
+					char *ep;
+					v = strtol(arg+v+1, &ep, 10);
+					if (*ep || v & (v-1) || v < 2)
+						continue;
+					opt_algo = i;
+					opt_pluck_n = v;
 					break;
 				}
 			}

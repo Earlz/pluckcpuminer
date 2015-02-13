@@ -221,6 +221,8 @@ void sha256d(unsigned char *hash, const unsigned char *data, int len)
 		be32enc((uint32_t *)hash + i, T[i]);
 }
 
+
+
 static inline void sha256d_preextend(uint32_t *W)
 {
 	W[16] = s1(W[14]) + W[ 9] + s0(W[ 1]) + W[ 0];
