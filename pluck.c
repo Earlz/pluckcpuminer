@@ -32,6 +32,74 @@
 #include <inttypes.h>
 
 
+#define ROTL(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
+//note, this is 64 bytes
+static inline void xor_salsa8(uint32_t B[16], const uint32_t Bx[16])
+{
+    uint32_t x00,x01,x02,x03,x04,x05,x06,x07,x08,x09,x10,x11,x12,x13,x14,x15;
+    int i;
+
+    x00 = (B[ 0] ^= Bx[ 0]);
+    x01 = (B[ 1] ^= Bx[ 1]);
+    x02 = (B[ 2] ^= Bx[ 2]);
+    x03 = (B[ 3] ^= Bx[ 3]);
+    x04 = (B[ 4] ^= Bx[ 4]);
+    x05 = (B[ 5] ^= Bx[ 5]);
+    x06 = (B[ 6] ^= Bx[ 6]);
+    x07 = (B[ 7] ^= Bx[ 7]);
+    x08 = (B[ 8] ^= Bx[ 8]);
+    x09 = (B[ 9] ^= Bx[ 9]);
+    x10 = (B[10] ^= Bx[10]);
+    x11 = (B[11] ^= Bx[11]);
+    x12 = (B[12] ^= Bx[12]);
+    x13 = (B[13] ^= Bx[13]);
+    x14 = (B[14] ^= Bx[14]);
+    x15 = (B[15] ^= Bx[15]);
+    for (i = 0; i < 8; i += 2) {
+        /* Operate on columns. */
+        x04 ^= ROTL(x00 + x12,  7);  x09 ^= ROTL(x05 + x01,  7);
+        x14 ^= ROTL(x10 + x06,  7);  x03 ^= ROTL(x15 + x11,  7);
+
+        x08 ^= ROTL(x04 + x00,  9);  x13 ^= ROTL(x09 + x05,  9);
+        x02 ^= ROTL(x14 + x10,  9);  x07 ^= ROTL(x03 + x15,  9);
+
+        x12 ^= ROTL(x08 + x04, 13);  x01 ^= ROTL(x13 + x09, 13);
+        x06 ^= ROTL(x02 + x14, 13);  x11 ^= ROTL(x07 + x03, 13);
+
+        x00 ^= ROTL(x12 + x08, 18);  x05 ^= ROTL(x01 + x13, 18);
+        x10 ^= ROTL(x06 + x02, 18);  x15 ^= ROTL(x11 + x07, 18);
+
+        /* Operate on rows. */
+        x01 ^= ROTL(x00 + x03,  7);  x06 ^= ROTL(x05 + x04,  7);
+        x11 ^= ROTL(x10 + x09,  7);  x12 ^= ROTL(x15 + x14,  7);
+
+        x02 ^= ROTL(x01 + x00,  9);  x07 ^= ROTL(x06 + x05,  9);
+        x08 ^= ROTL(x11 + x10,  9);  x13 ^= ROTL(x12 + x15,  9);
+
+        x03 ^= ROTL(x02 + x01, 13);  x04 ^= ROTL(x07 + x06, 13);
+        x09 ^= ROTL(x08 + x11, 13);  x14 ^= ROTL(x13 + x12, 13);
+
+        x00 ^= ROTL(x03 + x02, 18);  x05 ^= ROTL(x04 + x07, 18);
+        x10 ^= ROTL(x09 + x08, 18);  x15 ^= ROTL(x14 + x13, 18);
+    }
+    B[ 0] += x00;
+    B[ 1] += x01;
+    B[ 2] += x02;
+    B[ 3] += x03;
+    B[ 4] += x04;
+    B[ 5] += x05;
+    B[ 6] += x06;
+    B[ 7] += x07;
+    B[ 8] += x08;
+    B[ 9] += x09;
+    B[10] += x10;
+    B[11] += x11;
+    B[12] += x12;
+    B[13] += x13;
+    B[14] += x14;
+    B[15] += x15;
+}
+/*
 static inline void xor_salsa8(uint32_t B[16], const uint32_t Bx[16])
 {
   uint32_t x00,x01,x02,x03,x04,x05,x06,x07,x08,x09,x10,x11,x12,x13,x14,x15;
@@ -55,7 +123,7 @@ static inline void xor_salsa8(uint32_t B[16], const uint32_t Bx[16])
   x15 = (B[15] ^= Bx[15]);
   for (i = 0; i < 8; i += 2) {
 #define R(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
-    /* Operate on columns. */
+    /* Operate on columns. *
     x04 ^= R(x00+x12, 7); x09 ^= R(x05+x01, 7);
     x14 ^= R(x10+x06, 7); x03 ^= R(x15+x11, 7);
     
@@ -68,7 +136,7 @@ static inline void xor_salsa8(uint32_t B[16], const uint32_t Bx[16])
     x00 ^= R(x12+x08,18); x05 ^= R(x01+x13,18);
     x10 ^= R(x06+x02,18); x15 ^= R(x11+x07,18);
     
-    /* Operate on rows. */
+    /* Operate on rows. *
     x01 ^= R(x00+x03, 7); x06 ^= R(x05+x04, 7);
     x11 ^= R(x10+x09, 7); x12 ^= R(x15+x14, 7);
     
@@ -99,7 +167,7 @@ static inline void xor_salsa8(uint32_t B[16], const uint32_t Bx[16])
   B[14] += x14;
   B[15] += x15;
 }
-
+*/
 
 uint32_t static inline ReadBE32(const unsigned char* ptr)
 {
@@ -324,17 +392,24 @@ int scanhash_pluck(int thr_id, uint32_t *pdata,
   int counti;
   
   
-  for (counti = 0; counti < throughput; counti++)
-    memcpy(data + counti * 20, pdata, 80);
-  
+  //for (counti = 0; counti < throughput; counti++)
+    memcpy(data, pdata, 80);
+
+     for (int a = 0; a < 20; a++)
+      be32enc((uint32_t *)data + a, (((uint32_t*)pdata))[a]); 
 
  // memcpy(S + 8, pdata + 8, 32);
   //sha256_init(midstate);
   //sha256_transform(midstate, data, 0);
-  
+    printf("data: ");
+      for(int meh=0;meh<80;meh++)
+    {
+        printf("%x", ((uint8_t*)data)[meh]);
+    }
+    printf("\n");
   do {
-    for (counti = 0; counti < throughput; counti++)
-      data[counti * 20 + 19] = ++n; //incrementing nonce (?)
+    //for (counti = 0; counti < throughput; counti++)
+      data[19] = ++n; //incrementing nonce (?)
 
 const int BLOCK_HEADER_SIZE=80;
     //could probably cache this so that we can skip hash generation when the first sha256 hash matches
@@ -417,19 +492,39 @@ const int BLOCK_HEADER_SIZE=80;
         sha256Finalize(&sha, &hashbuffer[i-64]);
     }
     uint32_t T[8];
-    for (int a = 0; a < 8; a++)
-      hash[a] = swab32(((uint32_t*)hashbuffer)[a]);
+    //for (int a = 0; a < 8; a++)
+    //  hash[a] = swab32(((uint32_t*)hashbuffer)[a]);
     //for (int a = 0; a < 8; a++)
     //  be32enc((uint32_t *)hash + a, (((uint32_t*)hashbuffer))[a]);
-    //memcpy((unsigned char*)&hash, &hashbuffer[0], 32);
+    memcpy((unsigned char*)hash, hashbuffer, 32);
     free(hashbuffer);
     //printf("hash: %u\n", (unsigned int)hash[0]);
-
-    //scrypt_1024_1_1_256(data, hash, midstate, scratchbuf, N);
-      if (fulltest(hash, ptarget)) {
-        *hashes_done = n - first_nonce + 1;
+      if (hash[7] <= Htarg && fulltest(hash, ptarget)) {
+        *hashes_done = n - pdata[19] + 1;
+        pdata[19] = htobe32(data[19]);
+        printf("hasheddata:");
+      for(int meh=0;meh<80;meh++)
+    {
+        printf("%x", ((uint8_t*)data)[meh]);
+    }
+            printf("\ntxxxeddata:");
+      for(int meh=0;meh<80;meh++)
+    {
+        printf("%x", ((uint8_t*)pdata)[meh]);
+    }
+    printf("\nhash:");
+      for(int meh=0;meh<32;meh++)
+    {
+        printf("%x", ((uint8_t*)hash)[meh]);
+    }
+    printf("\n");
         return 1;
       }
+    //scrypt_1024_1_1_256(data, hash, midstate, scratchbuf, N);
+     /* if (fulltest(hash, ptarget)) {
+        *hashes_done = n - first_nonce + 1;
+        return 1;
+      }*/
   } while (n < max_nonce && !work_restart[thr_id].restart);
   
   *hashes_done = n - first_nonce + 1;
