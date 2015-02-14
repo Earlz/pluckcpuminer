@@ -416,7 +416,12 @@ const int BLOCK_HEADER_SIZE=80;
         sha256Write(&sha, &hashbuffer[i], 64);
         sha256Finalize(&sha, &hashbuffer[i-64]);
     }
-    memcpy((unsigned char*)&hash, &hashbuffer[0], 32);
+    uint32_t T[8];
+    for (int a = 0; a < 8; a++)
+      hash[a] = swab32(((uint32_t*)hashbuffer)[a]);
+    //for (int a = 0; a < 8; a++)
+    //  be32enc((uint32_t *)hash + a, (((uint32_t*)hashbuffer))[a]);
+    //memcpy((unsigned char*)&hash, &hashbuffer[0], 32);
     free(hashbuffer);
     //printf("hash: %u\n", (unsigned int)hash[0]);
 
