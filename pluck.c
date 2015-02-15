@@ -406,25 +406,16 @@ void sha256_hash512(unsigned char *hash, const unsigned char *data)
 
   sha256_init(S);
 
-    if (64 < 64)
-      memset(T, 0, 64);
-    memcpy(T, data + 64 - 64, 64 > 64 ? 64 : (64 < 0 ? 0 : 64));
-    if (64 >= 0 && 64 < 64)
-      ((unsigned char *)T)[64] = 0x80;
+    memcpy(T, data, 64);
     for (i = 0; i < 16; i++)
       T[i] = be32dec(T + i);
-    if (64 < 56)
-      T[15] = 8 * 64;
     sha256_transform(S, T, 0);
 
-    if (0 < 64)
-      memset(T, 0, 64);
-    memcpy(T, data + 64 - 0, 0 > 64 ? 64 : (0 < 0 ? 0 : 0));
-    if (0 >= 0 && 0 < 64)
-      ((unsigned char *)T)[0] = 0x80;
+    memset(T, 0, 64);
+    //memcpy(T, data + 64, 0);
+    ((unsigned char *)T)[0] = 0x80;
     for (i = 0; i < 16; i++)
       T[i] = be32dec(T + i);
-    if (0 < 56)
       T[15] = 8 * 64;
     sha256_transform(S, T, 0);
 
