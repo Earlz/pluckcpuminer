@@ -33,7 +33,7 @@
 #include <emmintrin.h>
 
 
-#define USE_SSE2 1
+//#define USE_SSE2 1
 
 #define ROTL(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
 //note, this is 64 bytes
@@ -293,8 +293,11 @@ const int BLOCK_HEADER_SIZE=80;
         {
             memset(&randbuffer, 0, 64);
         }
+        #ifdef USE_SSE2
+        xor_salsa8_sse2((__m128i*)randbuffer, (__m128i*)randseed);
+        #else
         xor_salsa8(randbuffer, randseed);
-
+        #endif
         memcpy(joint, &hashbuffer[i-32], 32);
         //use the last hash value as the seed
         for (int j = 32; j < 64; j+=4)
@@ -320,7 +323,11 @@ const int BLOCK_HEADER_SIZE=80;
         {
             memset(randbuffer, 0, 64);
         }
+        //#ifdef USE_SSE2
+        //xor_salsa8_sse2((__m128i*)randbuffer, (__m128i*)randseed);
+        //#else
         xor_salsa8(randbuffer, randseed);
+       // #endif
 
         //use the last hash value as the seed
         for (int j = 0; j < 32; j+=2)
