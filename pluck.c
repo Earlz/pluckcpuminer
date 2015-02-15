@@ -468,10 +468,12 @@ const int BLOCK_HEADER_SIZE=80;
     //uint8_t buffer[HASH_MEMORY];
     memset(hashbuffer, 0, 64); 
     //memcpy(hashbuffer, data.begin(), 32); 
+    sha256_hash(&hashbuffer[0], data, BLOCK_HEADER_SIZE);
+    /*
     sha256Reset(&sha);
     sha256Write(&sha, data, BLOCK_HEADER_SIZE);
     sha256Finalize(&sha, &hashbuffer[0]);
-
+    */
     
 
     for (int i = 64; i < size-32; i+=32)
@@ -538,10 +540,11 @@ const int BLOCK_HEADER_SIZE=80;
     for (int i = size-64-1; i >= 64; i -= 64)       
     {      
       assert(i-64 >= 0);       
-      assert(i+64<size);       
-      sha256Reset(&sha);
+      assert(i+64<size);    
+      sha256_hash512(&hashbuffer[i-64], &hashbuffer[i]);
+    /*  sha256Reset(&sha);
       sha256Write(&sha, &hashbuffer[i], 64);
-      sha256Finalize(&sha, &hashbuffer[i-64]);
+      sha256Finalize(&sha, &hashbuffer[i-64]); */
      }
 
 
