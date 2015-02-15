@@ -375,8 +375,64 @@ static inline void assert(int cond)
     exit(1);
   }
 }
+//computes a single sha256 hash
+void sha256_hash(unsigned char *hash, const unsigned char *data, int len)
+{
+  uint32_t S[16] __attribute__((aligned(32))), T[16] __attribute__((aligned(32)));
+  int i, r;
 
-static const int HASH_MEMORY=128*1024;
+  sha256_init(S);
+  for (r = len; r > -9; r -= 64) {
+    if (r < 64)
+      memset(T, 0, 64);
+    memcpy(T, data + len - r, r > 64 ? 64 : (r < 0 ? 0 : r));
+    if (r >= 0 && r < 64)
+      ((unsigned char *)T)[r] = 0x80;
+    for (i = 0; i < 16; i++)
+      T[i] = be32dec(T + i);
+    if (r < 56)
+      T[15] = 8 * len;
+    sha256_transform(S, T, 0);
+  }
+  for (i = 0; i < 8; i++)
+    be32enc((uint32_t *)hash + i, S[i]);
+}
+
+//hash exactly 64 bytes (ie, sha256 block size)
+void sha256_hash512(unsigned char *hash, const unsigned char *data)
+{
+  uint32_t S[16] __attribute__((aligned(32))), T[16] __attribute__((aligned(32)));
+  int i, r;
+
+  sha256_init(S);
+
+    if (64 < 64)
+      memset(T, 0, 64);
+    memcpy(T, data + 64 - 64, 64 > 64 ? 64 : (64 < 0 ? 0 : 64));
+    if (64 >= 0 && 64 < 64)
+      ((unsigned char *)T)[64] = 0x80;
+    for (i = 0; i < 16; i++)
+      T[i] = be32dec(T + i);
+    if (64 < 56)
+      T[15] = 8 * 64;
+    sha256_transform(S, T, 0);
+
+    if (0 < 64)
+      memset(T, 0, 64);
+    memcpy(T, data + 64 - 0, 0 > 64 ? 64 : (0 < 0 ? 0 : 0));
+    if (0 >= 0 && 0 < 64)
+      ((unsigned char *)T)[0] = 0x80;
+    for (i = 0; i < 16; i++)
+      T[i] = be32dec(T + i);
+    if (0 < 56)
+      T[15] = 8 * 64;
+    sha256_transform(S, T, 0);
+
+  for (i = 0; i < 8; i++)
+    be32enc((uint32_t *)hash + i, S[i]);
+}
+
+//static const int HASH_MEMORY=128*1024;
 
 int scanhash_pluck(int thr_id, uint32_t *pdata,
   unsigned char *scratchbuf, const uint32_t *ptarget,
@@ -386,6 +442,7 @@ int scanhash_pluck(int thr_id, uint32_t *pdata,
   uint32_t S[16];
   //uint32_t midstate[8];
   uint32_t n = pdata[19] - 1;
+  const int HASH_MEMORY=N*1024;
   const uint32_t first_nonce = pdata[19];
   const uint32_t Htarg = ptarget[7];
   int throughput = 1;
@@ -413,7 +470,7 @@ int scanhash_pluck(int thr_id, uint32_t *pdata,
 
 const int BLOCK_HEADER_SIZE=80;
     //could probably cache this so that we can skip hash generation when the first sha256 hash matches
-    uint8_t *hashbuffer = malloc(HASH_MEMORY); //don't allocate this on stack, since it's huge.. 
+    uint8_t *hashbuffer = scratchbuf; //don't allocate this on stack, since it's huge.. 
     //allocating on heap adds hardly any overhead on Linux
     int size=HASH_MEMORY;
     sha256state sha;
@@ -423,6 +480,8 @@ const int BLOCK_HEADER_SIZE=80;
     sha256Reset(&sha);
     sha256Write(&sha, data, BLOCK_HEADER_SIZE);
     sha256Finalize(&sha, &hashbuffer[0]);
+
+    
 
     for (int i = 64; i < size-32; i+=32)
     {
@@ -459,9 +518,8 @@ const int BLOCK_HEADER_SIZE=80;
             joint[j/4] = *((uint32_t*)&hashbuffer[rand]);
         }
         assert(i>=0 && i+32<size);
-                sha256Reset(&sha);
-        sha256Write(&sha, joint, 64);
-        sha256Finalize(&sha, &hashbuffer[i]);
+
+        sha256_hash512(&hashbuffer[i], joint);
 
         //setup randbuffer to be an array of random indexes
         memcpy(randseed, &hashbuffer[i-32], 64); //use last hash value and previous hash value(post-mixing)
@@ -501,7 +559,7 @@ const int BLOCK_HEADER_SIZE=80;
     //for (int a = 0; a < 8; a++)
     //  be32enc((uint32_t *)hash + a, (((uint32_t*)hashbuffer))[a]);
     memcpy((unsigned char*)hash, hashbuffer, 32);
-    free(hashbuffer);
+    //free(hashbuffer);
     //printf("hash: %u\n", (unsigned int)hash[0]);
       if (hash[7] <= Htarg && fulltest(hash, ptarget)) {
         *hashes_done = n - pdata[19] + 1;
