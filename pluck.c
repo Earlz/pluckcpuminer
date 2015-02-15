@@ -423,10 +423,12 @@ const int BLOCK_HEADER_SIZE=80;
     sha256Reset(&sha);
     sha256Write(&sha, data, BLOCK_HEADER_SIZE);
     sha256Finalize(&sha, &hashbuffer[0]);
+
     for (int i = 64; i < size-32; i+=32)
     {
-        uint64_t randmax = (uint64_t)i; //we could use size here, but then it's probable to use 0 as the value in most cases
-        uint8_t joint[64];
+        //i-4 because we use integers for all references against this, and we don't want to go 3 bytes over the defined area
+        int randmax = i-4; //we could use size here, but then it's probable to use 0 as the value in most cases
+        uint32_t joint[16];
         uint32_t randbuffer[16];
         assert(i-32>0);
         assert(i<size);
@@ -445,18 +447,19 @@ const int BLOCK_HEADER_SIZE=80;
         xor_salsa8(randbuffer, randseed);
 
         memcpy(joint, &hashbuffer[i-32], 32);
-        //uint32_t seed=*((uint32_t*)&joint[0]); //use the last hash value as the seed
-        for (int j = 32; j < 64; j++)
+        //use the last hash value as the seed
+        for (int j = 32; j < 64; j+=4)
         {
             assert((j - 32) / 2 < 16);
             //every other time, change to next random index
-            uint32_t rand = randbuffer[(j - 32)/2] % randmax;
+            uint32_t rand = randbuffer[(j - 32)/4] % (randmax-32); //randmax - 32 as otherwise we go beyond memory that's already been written to
             assert(j>0 && j<64);
             assert(rand<size);
-            joint[j] = hashbuffer[rand];
+            assert(j/2 < 64);
+            joint[j/4] = *((uint32_t*)&hashbuffer[rand]);
         }
         assert(i>=0 && i+32<size);
-        sha256Reset(&sha);
+                sha256Reset(&sha);
         sha256Write(&sha, joint, 64);
         sha256Finalize(&sha, &hashbuffer[i]);
 
@@ -467,31 +470,32 @@ const int BLOCK_HEADER_SIZE=80;
             memcpy(randbuffer, &hashbuffer[i-128], 64);
         }else
         {
-            memset(&randbuffer, 0, 64);
+            memset(randbuffer, 0, 64);
         }
         xor_salsa8(randbuffer, randseed);
 
-        //seed=*((uint32_t*)&hashbuffer[i]); //use the last hash value as the seed
-        for (int j = 0; j < 32; j++)
+        //use the last hash value as the seed
+        for (int j = 0; j < 32; j+=2)
         {
-            assert(j/2 < 16);
+            assert(j/4 < 16);
             uint32_t rand = randbuffer[j/2] % randmax;
             assert(rand < size);
-            assert(j+i >= 0 && j+i < size);
-            hashbuffer[rand] = hashbuffer[j+i];
+            assert((j/4)+i >= 0 && (j/4)+i < size);
+            assert(j + i -4 < i + 32); //assure we dont' access beyond the hash
+            *((uint32_t*)&hashbuffer[rand]) = *((uint32_t*)&hashbuffer[j + i - 4]);
         }
-        //memcpy(&buffer[i+32], tmp.begin(), 32);
     }
-    //note: off-by-one error is likely here...
-    for (int i = size-64-1; i > 64; i -= 64)
-    {
-      assert(i-64 >= 0);
-      assert(i+64<size);
-        sha256Reset(&sha);
-        sha256Write(&sha, &hashbuffer[i], 64);
-        sha256Finalize(&sha, &hashbuffer[i-64]);
-    }
-    uint32_t T[8];
+    //note: off-by-one error is likely here...     
+    for (int i = size-64-1; i >= 64; i -= 64)       
+    {      
+      assert(i-64 >= 0);       
+      assert(i+64<size);       
+      sha256Reset(&sha);
+      sha256Write(&sha, &hashbuffer[i], 64);
+      sha256Finalize(&sha, &hashbuffer[i-64]);
+     }
+
+
     //for (int a = 0; a < 8; a++)
     //  hash[a] = swab32(((uint32_t*)hashbuffer)[a]);
     //for (int a = 0; a < 8; a++)
