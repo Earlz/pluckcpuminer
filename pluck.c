@@ -165,6 +165,7 @@ static inline void xor_salsa8_sse2(__m128i B[4], const __m128i Bx[4])
 #endif
 
 
+
 static inline void assert(int cond)
 {
   if(!cond)
@@ -222,6 +223,7 @@ void sha256_hash512(unsigned char *hash, const unsigned char *data)
 }
 
 //static const int HASH_MEMORY=128*1024;
+static const int BLOCK_HEADER_SIZE=80;
 
 int scanhash_pluck(int thr_id, uint32_t *pdata,
   unsigned char *scratchbuf, const uint32_t *ptarget,
@@ -229,7 +231,6 @@ int scanhash_pluck(int thr_id, uint32_t *pdata,
 {
   uint32_t data[20], hash[8];
   uint32_t S[16];
-  //uint32_t midstate[8];
   uint32_t n = pdata[19] - 1;
   const int HASH_MEMORY=N*1024;
   const uint32_t first_nonce = pdata[19];
@@ -238,39 +239,19 @@ int scanhash_pluck(int thr_id, uint32_t *pdata,
   int counti;
   
   
-  //for (counti = 0; counti < throughput; counti++)
     memcpy(data, pdata, 80);
 
      for (int a = 0; a < 20; a++)
       be32enc((uint32_t *)data + a, (((uint32_t*)pdata))[a]); 
 
- // memcpy(S + 8, pdata + 8, 32);
-  //sha256_init(midstate);
-  //sha256_transform(midstate, data, 0);
-    printf("data: ");
-      for(int meh=0;meh<80;meh++)
-    {
-        printf("%x", ((uint8_t*)data)[meh]);
-    }
-    printf("\n");
   do {
-    //for (counti = 0; counti < throughput; counti++)
-      data[19] = ++n; //incrementing nonce (?)
+      data[19] = ++n; //incrementing nonce
 
-const int BLOCK_HEADER_SIZE=80;
-    //could probably cache this so that we can skip hash generation when the first sha256 hash matches
     uint8_t *hashbuffer = scratchbuf; //don't allocate this on stack, since it's huge.. 
     //allocating on heap adds hardly any overhead on Linux
     int size=HASH_MEMORY;
-    //uint8_t buffer[HASH_MEMORY];
     memset(hashbuffer, 0, 64); 
-    //memcpy(hashbuffer, data.begin(), 32); 
     sha256_hash(&hashbuffer[0], data, BLOCK_HEADER_SIZE);
-    /*
-    sha256Reset(&sha);
-    sha256Write(&sha, data, BLOCK_HEADER_SIZE);
-    sha256Finalize(&sha, &hashbuffer[0]);
-    */
     
 
     for (int i = 64; i < size-32; i+=32)
@@ -279,8 +260,8 @@ const int BLOCK_HEADER_SIZE=80;
         int randmax = i-4; //we could use size here, but then it's probable to use 0 as the value in most cases
         uint32_t joint[16];
         uint32_t randbuffer[16];
-        assert(i-32>0);
-        assert(i<size);
+//        assert(i-32>0);
+//        assert(i<size);
         uint32_t randseed[16];
         assert(sizeof(int)*16 == 64);
 
@@ -293,11 +274,7 @@ const int BLOCK_HEADER_SIZE=80;
         {
             memset(&randbuffer, 0, 64);
         }
-        #ifdef USE_SSE2
-        xor_salsa8_sse2((__m128i*)randbuffer, (__m128i*)randseed);
-        #else
         xor_salsa8(randbuffer, randseed);
-        #endif
         memcpy(joint, &hashbuffer[i-32], 32);
         //use the last hash value as the seed
         for (int j = 32; j < 64; j+=4)
@@ -305,12 +282,12 @@ const int BLOCK_HEADER_SIZE=80;
             assert((j - 32) / 2 < 16);
             //every other time, change to next random index
             uint32_t rand = randbuffer[(j - 32)/4] % (randmax-32); //randmax - 32 as otherwise we go beyond memory that's already been written to
-            assert(j>0 && j<64);
-            assert(rand<size);
-            assert(j/2 < 64);
+//            assert(j>0 && j<64);
+//            assert(rand<size);
+//            assert(j/2 < 64);
             joint[j/4] = *((uint32_t*)&hashbuffer[rand]);
         }
-        assert(i>=0 && i+32<size);
+//        assert(i>=0 && i+32<size);
 
         sha256_hash512(&hashbuffer[i], joint);
 
@@ -332,59 +309,29 @@ const int BLOCK_HEADER_SIZE=80;
         //use the last hash value as the seed
         for (int j = 0; j < 32; j+=2)
         {
-            assert(j/4 < 16);
+//            assert(j/4 < 16);
             uint32_t rand = randbuffer[j/2] % randmax;
-            assert(rand < size);
-            assert((j/4)+i >= 0 && (j/4)+i < size);
-            assert(j + i -4 < i + 32); //assure we dont' access beyond the hash
+//            assert(rand < size);
+//            assert((j/4)+i >= 0 && (j/4)+i < size);
+//            assert(j + i -4 < i + 32); //assure we dont' access beyond the hash
             *((uint32_t*)&hashbuffer[rand]) = *((uint32_t*)&hashbuffer[j + i - 4]);
         }
     }
     //note: off-by-one error is likely here...     
     for (int i = size-64-1; i >= 64; i -= 64)       
     {      
-      assert(i-64 >= 0);       
-      assert(i+64<size);    
+//      assert(i-64 >= 0);       
+//      assert(i+64<size);    
       sha256_hash512(&hashbuffer[i-64], &hashbuffer[i]);
-    /*  sha256Reset(&sha);
-      sha256Write(&sha, &hashbuffer[i], 64);
-      sha256Finalize(&sha, &hashbuffer[i-64]); */
      }
 
 
-    //for (int a = 0; a < 8; a++)
-    //  hash[a] = swab32(((uint32_t*)hashbuffer)[a]);
-    //for (int a = 0; a < 8; a++)
-    //  be32enc((uint32_t *)hash + a, (((uint32_t*)hashbuffer))[a]);
     memcpy((unsigned char*)hash, hashbuffer, 32);
-    //free(hashbuffer);
-    //printf("hash: %u\n", (unsigned int)hash[0]);
       if (hash[7] <= Htarg && fulltest(hash, ptarget)) {
         *hashes_done = n - pdata[19] + 1;
         pdata[19] = htobe32(data[19]);
-        printf("hasheddata:");
-      for(int meh=0;meh<80;meh++)
-    {
-        printf("%x", ((uint8_t*)data)[meh]);
-    }
-            printf("\ntxxxeddata:");
-      for(int meh=0;meh<80;meh++)
-    {
-        printf("%x", ((uint8_t*)pdata)[meh]);
-    }
-    printf("\nhash:");
-      for(int meh=0;meh<32;meh++)
-    {
-        printf("%x", ((uint8_t*)hash)[meh]);
-    }
-    printf("\n");
         return 1;
       }
-    //scrypt_1024_1_1_256(data, hash, midstate, scratchbuf, N);
-     /* if (fulltest(hash, ptarget)) {
-        *hashes_done = n - first_nonce + 1;
-        return 1;
-      }*/
   } while (n < max_nonce && !work_restart[thr_id].restart);
   
   *hashes_done = n - first_nonce + 1;

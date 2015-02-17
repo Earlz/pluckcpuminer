@@ -1159,7 +1159,7 @@ static void *miner_thread(void *userdata)
 				max64 = 0x1fffff;
 				break;
 			case ALGO_PLUCK:
-				max64 = 0xfff / opt_pluck_n; //tuning needed?
+				max64 = 0xffff / opt_pluck_n; //tuning needed?
 			}
 		}
 		if (work.data[19] + max64 > end_nonce)
