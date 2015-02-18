@@ -32,6 +32,10 @@
 #include <inttypes.h>
 #include <emmintrin.h>
 
+//windows hack bleh
+#ifndef htobe32
+#define htobe32(x)  ((u_int32_t)htonl((u_int32_t)(x)))
+#endif
 
 //#define USE_SSE2 1
 
