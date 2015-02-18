@@ -1,5 +1,5 @@
 ---
-name: "supcoin-win-0.10"
+name: "pluckminerd"
 enable_cache: true
 suites:
 - "precise"
