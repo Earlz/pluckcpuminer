@@ -260,4 +260,6 @@ extern void *tq_pop(struct thread_q *tq, const struct timespec *abstime);
 extern void tq_freeze(struct thread_q *tq);
 extern void tq_thaw(struct thread_q *tq);
 
+#define BLOCK_HEADER_SIZE	80
+
 #endif /* __MINER_H__ */
