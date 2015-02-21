@@ -195,7 +195,7 @@ void sha256_hash(unsigned char *hash, const unsigned char *data, int len)
       T[i] = be32dec(T + i);
     if (r < 56)
       T[15] = 8 * len;
-    sha256_transform(S, T, 0);
+    sha256_transform_volatile(S, T);
   }
   for (i = 0; i < 8; i++)
     be32enc((uint32_t *)hash + i, S[i]);
@@ -212,15 +212,15 @@ void sha256_hash512(unsigned char *hash, const unsigned char *data)
     memcpy(T, data, 64);
     for (i = 0; i < 16; i++)
       T[i] = be32dec(T + i);
-    sha256_transform(S, T, 0);
+    sha256_transform_volatile(S, T);
 
     memset(T, 0, 64);
     //memcpy(T, data + 64, 0);
     ((unsigned char *)T)[0] = 0x80;
     for (i = 0; i < 16; i++)
       T[i] = be32dec(T + i);
-      T[15] = 8 * 64;
-    sha256_transform(S, T, 0);
+    T[15] = 8 * 64;
+    sha256_transform_volatile(S, T);
 
   for (i = 0; i < 8; i++)
     be32enc((uint32_t *)hash + i, S[i]);
