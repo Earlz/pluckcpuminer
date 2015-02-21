@@ -181,7 +181,7 @@ static inline void assert(int cond)
 //computes a single sha256 hash
 void sha256_hash(unsigned char *hash, const unsigned char *data, int len)
 {
-  uint32_t S[16] __attribute__((aligned(32))), T[16] __attribute__((aligned(32)));
+  uint32_t S[16] __attribute__((aligned(32))), T[64] __attribute__((aligned(32)));
   int i, r;
 
   sha256_init(S);
@@ -204,7 +204,7 @@ void sha256_hash(unsigned char *hash, const unsigned char *data, int len)
 //hash exactly 64 bytes (ie, sha256 block size)
 void sha256_hash512(unsigned char *hash, const unsigned char *data)
 {
-  uint32_t S[16] __attribute__((aligned(32))), T[16] __attribute__((aligned(32)));
+  uint32_t S[16] __attribute__((aligned(32))), T[64] __attribute__((aligned(32)));
   int i, r;
 
   sha256_init(S);

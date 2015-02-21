@@ -79,19 +79,21 @@ void sha256_init(uint32_t *state)
  * SHA256 block compression function.  The 256-bit state is transformed via
  * the 512-bit input block to produce a new state.
  */
-void sha256_transform(uint32_t *state, const uint32_t *block, int swap)
+void sha256_transform(uint32_t *state, uint32_t *block, int swap)
 {
-	uint32_t W[64];
+	//uint32_t W[64];
+	uint32_t* W=block;
 	uint32_t S[8];
 	uint32_t t0, t1;
 	int i;
 
 	/* 1. Prepare message schedule W. */
-	if (swap) {
+	/*if (swap) {
 		for (i = 0; i < 16; i++)
 			W[i] = swab32(block[i]);
 	} else
 		memcpy(W, block, 64);
+	*/
 	for (i = 16; i < 64; i += 2) {
 		W[i]   = s1(W[i - 2]) + W[i - 7] + s0(W[i - 15]) + W[i - 16];
 		W[i+1] = s1(W[i - 1]) + W[i - 6] + s0(W[i - 14]) + W[i - 15];
