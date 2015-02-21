@@ -275,11 +275,12 @@ void PluckHash(uint32_t *hash, const uint32_t *data, void *hashbuffer, const int
 			*((uint32_t *)(hashbuffer + rand)) = *((uint32_t *)(hashbuffer + j + randmax));
 		}
 	}
-
+/*NOTE: this is bugged. This will probably be fixed in a later hard-forking update... 
+but not anytime soon, so remove it and take advantage of optimization *
 	//note: off-by-one error is likely here...     
-	for(int i = size - 64 - 1; i >= 64; i -= 64)       
+	for(int i = size - 64 ; i >= 64; i -= 64)       
 		sha256_hash512(hashbuffer + i - 64, hashbuffer + i);
-	
+	*/
 	memcpy(hash, hashbuffer, 32);
 }
 
